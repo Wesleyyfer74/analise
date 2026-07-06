@@ -36,6 +36,7 @@ ASAAS_PROJECT_WALLET_ID=
 ASAAS_PROJECT_SPLIT_PERCENT=0
 
 BASE_URL=https://seu-dominio
+APP_SECRET=troque-por-uma-chave-longa-aleatoria
 SESSION_TIMEOUT=3600
 REPORT_TTL=86400
 ```
@@ -44,6 +45,11 @@ Deixe `ASAAS_PROJECT_SPLIT_PERCENT=0` quando o dinheiro deve cair na propria
 conta Asaas da API. Use split somente quando `ASAAS_PROJECT_WALLET_ID` for a
 wallet de uma subconta diferente; o Asaas nao permite split para a propria
 carteira.
+
+O painel `Admin > Dona/Split` cria ou salva a subconta da dona do sistema. Com
+a wallet ativa, cada cobranca envia o percentual configurado para a dona, por
+padrao 70%, e o restante fica na conta principal. A `APP_SECRET` protege a API
+key da subconta quando ela e retornada pelo Asaas.
 
 Banco:
 

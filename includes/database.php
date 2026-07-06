@@ -103,11 +103,50 @@ function db_migrate(PDO $pdo) {
         invoice_url VARCHAR(500) NULL,
         pix_payload $text NULL,
         pix_qr_code $text NULL,
+        split_wallet_id VARCHAR(120) NULL,
+        owner_share_percent DECIMAL(5,2) NULL,
+        owner_share_value DECIMAL(10,2) NULL,
+        platform_share_value DECIMAL(10,2) NULL,
         raw_payload $text NULL,
         created_at $datetime NOT NULL,
         updated_at $datetime NULL,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
     )");
+    db_add_column_if_missing($pdo, 'payments', 'split_wallet_id', 'VARCHAR(120) NULL');
+    db_add_column_if_missing($pdo, 'payments', 'owner_share_percent', 'DECIMAL(5,2) NULL');
+    db_add_column_if_missing($pdo, 'payments', 'owner_share_value', 'DECIMAL(10,2) NULL');
+    db_add_column_if_missing($pdo, 'payments', 'platform_share_value', 'DECIMAL(10,2) NULL');
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS owner_settings (
+        id INT PRIMARY KEY,
+        name VARCHAR(160) NULL,
+        email VARCHAR(160) NULL,
+        cpf_cnpj VARCHAR(20) NULL,
+        birth_date DATE NULL,
+        company_type VARCHAR(30) NULL,
+        phone VARCHAR(40) NULL,
+        mobile_phone VARCHAR(40) NULL,
+        income_value DECIMAL(12,2) NULL,
+        address VARCHAR(180) NULL,
+        address_number VARCHAR(30) NULL,
+        complement VARCHAR(120) NULL,
+        province VARCHAR(120) NULL,
+        postal_code VARCHAR(20) NULL,
+        wallet_id VARCHAR(120) NULL,
+        api_key_encrypted $text NULL,
+        split_percent DECIMAL(5,2) NOT NULL DEFAULT 70,
+        status VARCHAR(30) NOT NULL DEFAULT 'not_configured',
+        last_error $text NULL,
+        raw_payload $text NULL,
+        created_at $datetime NULL,
+        updated_at $datetime NULL
+    )");
+    db_add_column_if_missing($pdo, 'owner_settings', 'birth_date', 'DATE NULL');
+    db_add_column_if_missing($pdo, 'owner_settings', 'company_type', 'VARCHAR(30) NULL');
+    db_add_column_if_missing($pdo, 'owner_settings', 'api_key_encrypted', $text . ' NULL');
+    db_add_column_if_missing($pdo, 'owner_settings', 'split_percent', 'DECIMAL(5,2) NOT NULL DEFAULT 70');
+    db_add_column_if_missing($pdo, 'owner_settings', 'last_error', $text . ' NULL');
+    db_add_column_if_missing($pdo, 'owner_settings', 'raw_payload', $text . ' NULL');
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS usage_events (
         id $auto,
@@ -129,6 +168,29 @@ function db_migrate(PDO $pdo) {
     )");
 
     ensure_default_admin($pdo);
+}
+
+function db_add_column_if_missing(PDO $pdo, $table, $column, $definition) {
+    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+    if ($driver === 'mysql') {
+        $stmt = $pdo->prepare(
+            'SELECT COUNT(*) total FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?'
+        );
+        $stmt->execute([$table, $column]);
+        if ((int)$stmt->fetchColumn() === 0) {
+            $pdo->exec("ALTER TABLE `$table` ADD COLUMN `$column` $definition");
+        }
+        return;
+    }
+
+    $stmt = $pdo->query("PRAGMA table_info($table)");
+    $columns = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($columns as $info) {
+        if (($info['name'] ?? '') === $column) {
+            return;
+        }
+    }
+    $pdo->exec("ALTER TABLE $table ADD COLUMN $column $definition");
 }
 
 function ensure_default_admin(PDO $pdo) {
