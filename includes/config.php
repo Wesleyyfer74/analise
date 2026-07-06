@@ -64,7 +64,10 @@ function storage_path($env_name, $default_relative) {
 
     $volume = env_value('RAILWAY_VOLUME_MOUNT_PATH');
     if ($volume) {
-        return rtrim($volume, '/\\') . '/' . trim($default_relative, '/\\');
+        $candidate = rtrim($volume, '/\\') . '/' . trim($default_relative, '/\\');
+        if ((is_dir($candidate) || @mkdir($candidate, 0755, true)) && is_writable($candidate)) {
+            return $candidate;
+        }
     }
 
     return BASE_DIR . '/' . trim($default_relative, '/\\');
