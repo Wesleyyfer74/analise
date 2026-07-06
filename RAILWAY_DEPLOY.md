@@ -32,13 +32,18 @@ MONTHLY_TOKEN_QUOTA=30
 ASAAS_ENV=production
 ASAAS_API_KEY=...
 ASAAS_WEBHOOK_TOKEN=...
-ASAAS_PROJECT_WALLET_ID=...
-ASAAS_PROJECT_SPLIT_PERCENT=100
+ASAAS_PROJECT_WALLET_ID=
+ASAAS_PROJECT_SPLIT_PERCENT=0
 
 BASE_URL=https://seu-dominio
 SESSION_TIMEOUT=3600
 REPORT_TTL=86400
 ```
+
+Deixe `ASAAS_PROJECT_SPLIT_PERCENT=0` quando o dinheiro deve cair na propria
+conta Asaas da API. Use split somente quando `ASAAS_PROJECT_WALLET_ID` for a
+wallet de uma subconta diferente; o Asaas nao permite split para a propria
+carteira.
 
 Banco:
 
