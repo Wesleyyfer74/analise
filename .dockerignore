@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+att/
+*.zip
+data/
+static/cache/
+logs/*.log
+.git/
+.gitignore
+README.local

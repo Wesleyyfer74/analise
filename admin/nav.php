@@ -1,0 +1,1 @@
+<nav class="nav"><a href="index.php">Dashboard</a><a href="clientes.php">Clientes</a><a href="clientes.php?action=new">Novo cliente</a><a href="financeiro.php">Financeiro</a><a href="../index.php">Site</a><a href="logout.php">Sair</a></nav>

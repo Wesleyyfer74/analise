@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+att/
+*.zip
+data/reports/*
+data/*.sqlite
+data/*.sqlite-*
+data/cache/*
+data/logs/*
+!data/reports/.gitkeep
+static/cache/*
+!static/cache/.gitkeep
+*.log
+logs/*
+!logs/.htaccess

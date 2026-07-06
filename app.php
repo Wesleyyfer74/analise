@@ -1,0 +1,332 @@
+<?php
+/**
+ * Studio Visagismo IA - Frontend PHP mobile-first.
+ */
+
+declare(strict_types=1);
+require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/auth.php';
+
+start_request_debug();
+start_secure_session();
+cleanup_expired_reports();
+[$logged_user, $client_profile] = require_active_client();
+
+$error = $_SESSION['error'] ?? null;
+unset($_SESSION['error']);
+
+$report_id = $_GET['report_id'] ?? $_SESSION['report_id'] ?? null;
+$result = null;
+$frontal_url = null;
+$angle_url = null;
+$preview_url = null;
+
+if (!empty($report_id) && is_string($report_id)) {
+    try {
+        authorize_report($report_id);
+        $report = load_report($report_id);
+        $result = $report['analysis'] ?? null;
+        $frontal_url = $report['frontal_url'] ?? null;
+        $angle_url = $report['angle_url'] ?? null;
+        $preview_url = $report['preview_url'] ?? null;
+    } catch (Throwable $e) {
+        debug_log('ERRO CARREGANDO RELATORIO NO INDEX', ['error' => $e->getMessage()], 'ERROR');
+        $error = $e->getMessage();
+        $report_id = null;
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0f172a">
+    <title>Studio Visagismo IA</title>
+    <style>
+        :root {
+            --bg: #f5f7fb; --surface: #fff; --surface-soft: #f8fafc;
+            --text: #172033; --muted: #667085; --line: #e7ebf2;
+            --primary: #7c3aed; --primary-dark: #6025c5; --primary-soft: #f2ebff;
+            --danger: #b42318; --danger-soft: #fff1f0; --shadow: 0 18px 50px rgba(15,23,42,.08);
+            --radius-lg: 24px; --radius-md: 16px; --radius-sm: 12px;
+        }
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0; min-height: 100vh; color: var(--text);
+            background: radial-gradient(circle at top right, rgba(124,58,237,.12), transparent 28rem), linear-gradient(180deg,#f8f9fd 0%,var(--bg) 100%);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+        button, input, select, textarea { font: inherit; }
+        .page-shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 56px; }
+        .hero, .card { border: 1px solid var(--line); border-radius: var(--radius-lg); background: rgba(255,255,255,.96); box-shadow: var(--shadow); }
+        .hero { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 24px; align-items: center; margin-bottom: 24px; padding: 28px; overflow: hidden; border-color: rgba(124,58,237,.12); background: linear-gradient(135deg,rgba(255,255,255,.96),rgba(248,245,255,.96)); }
+        .eyebrow { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 12px; color: var(--primary); font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+        .eyebrow-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 0 6px rgba(124,58,237,.12); }
+        h1, h2, h3, p { margin-top: 0; }
+        h1 { max-width: 780px; margin-bottom: 10px; font-size: clamp(2rem,5vw,3.35rem); line-height: 1.03; letter-spacing: -.055em; }
+        .hero p { max-width: 760px; margin-bottom: 0; color: var(--muted); font-size: 1.03rem; line-height: 1.65; }
+        .hero-mark { display: grid; width: 104px; height: 104px; place-items: center; border-radius: 30px; background: linear-gradient(145deg,var(--primary),#a56bff); color: white; font-size: 3rem; box-shadow: 0 18px 32px rgba(124,58,237,.24); }
+        .card { margin-bottom: 20px; }
+        .card-body { padding: 24px; }
+        .card-heading { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 20px; }
+        .step { display: grid; flex: 0 0 auto; width: 34px; height: 34px; place-items: center; border-radius: 50%; background: var(--primary-soft); color: var(--primary); font-weight: 800; }
+        .card-heading h2 { margin-bottom: 4px; font-size: 1.25rem; letter-spacing: -.025em; }
+        .card-heading p { margin-bottom: 0; color: var(--muted); font-size: .94rem; line-height: 1.55; }
+        .form-grid, .photo-grid, .report-grid, .recommendation-grid { display: grid; gap: 16px; grid-template-columns: repeat(2,minmax(0,1fr)); }
+        .field { min-width: 0; }
+        label { display: block; margin-bottom: 8px; color: #344054; font-size: .9rem; font-weight: 750; }
+        input[type="file"], select, textarea { width: 100%; border: 1px solid #d7dce5; border-radius: var(--radius-sm); background: white; color: var(--text); outline: none; transition: border-color 160ms ease, box-shadow 160ms ease; }
+        input[type="file"] { padding: 10px; }
+        input[type="file"]::file-selector-button { margin-right: 10px; padding: 9px 12px; border: 0; border-radius: 9px; background: var(--primary-soft); color: var(--primary); cursor: pointer; font-weight: 800; }
+        select, textarea { padding: 13px 14px; }
+        textarea { min-height: 104px; resize: vertical; line-height: 1.5; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(124,58,237,.12); }
+        .helper { margin-top: 7px; color: var(--muted); font-size: .8rem; line-height: 1.45; }
+        .consent { display: flex; gap: 10px; align-items: flex-start; margin-top: 18px; color: #475467; font-size: .86rem; line-height: 1.5; }
+        .consent input { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 2px; accent-color: var(--primary); }
+        .btn { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 13px; padding: 12px 18px; cursor: pointer; text-decoration: none; font-weight: 850; transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease; }
+        .btn:hover { transform: translateY(-1px); }
+        .btn-primary { background: linear-gradient(135deg,var(--primary),#9655ef); color: white; box-shadow: 0 12px 24px rgba(124,58,237,.22); }
+        .btn-primary:hover { background: linear-gradient(135deg,var(--primary-dark),var(--primary)); }
+        .btn-secondary { background: #eef2f7; color: #344054; }
+        .btn-lg { min-height: 56px; padding: 15px 22px; font-size: 1rem; }
+        .form-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+        .alert { margin-bottom: 20px; border-radius: var(--radius-md); padding: 14px 16px; line-height: 1.55; }
+        .alert-error { border: 1px solid #fecdca; background: var(--danger-soft); color: var(--danger); }
+        .restore-card { display: none; margin-bottom: 20px; border: 1px solid rgba(124,58,237,.2); border-radius: var(--radius-md); padding: 16px; background: rgba(242,235,255,.82); }
+        .restore-card.visible { display: block; }
+        .restore-card p { margin: 0 0 10px; color: #5b4a74; line-height: 1.55; }
+        .photo-card { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-soft); }
+        .photo-card h3 { margin: 0; padding: 12px 14px; color: #475467; font-size: .87rem; font-weight: 800; }
+        .photo-card img { display: block; width: 100%; max-height: 360px; object-fit: cover; background: #eef2f6; }
+        .badge-row { display: flex; flex-wrap: wrap; gap: 9px; margin-bottom: 18px; }
+        .badge { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 8px 11px; background: var(--primary-soft); color: #6130b5; font-size: .82rem; font-weight: 800; }
+        .report-section { padding: 18px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-soft); margin-top: 16px; }
+        .report-section h3 { margin-bottom: 8px; color: #344054; font-size: 1rem; letter-spacing: -.015em; }
+        .report-section p { margin-bottom: 0; color: #596579; line-height: 1.65; }
+        .report-section ul { margin: 0; padding-left: 18px; color: #596579; line-height: 1.7; }
+        .preview-callout { margin-top: 22px; overflow: hidden; border: 1px solid rgba(124,58,237,.18); border-radius: var(--radius-lg); background: linear-gradient(135deg,rgba(124,58,237,.09),rgba(255,255,255,.94)); }
+        .preview-callout-inner { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 18px; align-items: center; padding: 22px; }
+        .preview-callout h3 { margin-bottom: 7px; font-size: 1.25rem; letter-spacing: -.025em; }
+        .preview-callout p { margin-bottom: 0; color: var(--muted); line-height: 1.55; }
+        .preview-stage { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-lg); background: #101828; box-shadow: var(--shadow); margin-top: 18px; }
+        .preview-stage img { display: block; width: 100%; max-height: 1000px; object-fit: contain; background: #101828; }
+        .preview-caption { padding: 15px 18px; background: white; color: #475467; font-size: .92rem; line-height: 1.55; }
+        .loading-overlay { position: fixed; z-index: 999; inset: 0; display: none; place-items: center; padding: 20px; background: rgba(15,23,42,.68); backdrop-filter: blur(8px); }
+        .loading-overlay.active { display: grid; }
+        .loading-card { width: min(390px,100%); padding: 24px; border-radius: 20px; background: white; text-align: center; box-shadow: var(--shadow); }
+        .spinner { width: 48px; height: 48px; margin: 0 auto 16px; border: 5px solid #ece7f7; border-top-color: var(--primary); border-radius: 50%; animation: spin 850ms linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 760px) {
+            .page-shell { width: min(100% - 20px,680px); padding: 14px 0 34px; }
+            .hero { grid-template-columns: 1fr; padding: 20px; }
+            .hero-mark { display: none; }
+            h1 { font-size: clamp(2rem,11vw,2.85rem); }
+            .card-body { padding: 17px; }
+            .form-grid, .photo-grid, .report-grid, .recommendation-grid { grid-template-columns: 1fr; }
+            .preview-callout-inner { grid-template-columns: 1fr; padding: 18px; }
+            .btn, .form-actions .btn { width: 100%; }
+            .photo-card img { max-height: 300px; }
+            .preview-stage img { max-height: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay" aria-live="polite">
+        <div class="loading-card">
+            <div class="spinner"></div>
+            <h3 id="loadingTitle">Processando...</h3>
+            <p id="loadingText">Isso pode levar alguns instantes.</p>
+        </div>
+    </div>
+
+    <main class="page-shell">
+        <section class="hero">
+            <div>
+                <div class="eyebrow"><span class="eyebrow-dot"></span>Studio Visagismo IA</div>
+                <h1>Descubra um visual mais harmônico para o seu rosto.</h1>
+                <p>Envie duas fotos para receber uma análise personalizada do formato do rosto, cortes recomendados e sugestões de coloração. Depois do relatório, gere uma simulação visual do corte indicado.</p>
+            </div>
+            <div class="hero-mark" aria-hidden="true">✦</div>
+        </section>
+
+        <?php if ($error): ?>
+            <div class="alert alert-error"><strong>Não foi possível concluir:</strong> <?= h($error) ?></div>
+        <?php endif; ?>
+
+        <?php if (!$result): ?>
+            <div class="restore-card" id="restoreCard">
+                <p><strong>Existe uma análise salva neste aparelho.</strong><br>Você pode reabrir o último relatório sem enviar as fotos novamente.</p>
+                <a class="btn btn-primary" id="restoreLink" href="#">Abrir último relatório</a>
+            </div>
+
+            <section class="card">
+                <div class="card-body">
+                    <div class="card-heading">
+                        <span class="step">1</span>
+                        <div>
+                            <h2>Envie suas fotografias</h2>
+                            <p>Use imagens nítidas, sem filtros fortes e com iluminação uniforme. A foto frontal deve mostrar claramente o contorno do rosto.</p>
+                        </div>
+                    </div>
+
+                    <form action="api/analisar.php" method="POST" enctype="multipart/form-data" class="js-loading-form" data-loading-title="Analisando suas fotos..." data-loading-text="Estamos preparando seu relatório personalizado.">
+                        <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
+                        <input type="hidden" name="MAX_FILE_SIZE" value="<?= MAX_UPLOAD_SIZE ?>">
+
+                        <div class="form-grid">
+                            <div class="field">
+                                <label for="foto_frontal">Foto frontal</label>
+                                <input type="file" name="foto_frontal" id="foto_frontal" accept="image/jpeg,image/png,image/webp,image/bmp,image/gif,image/avif,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.bmp,.gif,.avif,.heic,.heif" required>
+                                <div class="helper">Rosto reto para a câmera. Também aceita HEIC/HEIF do iPhone.</div>
+                            </div>
+
+                            <div class="field">
+                                <label for="foto_45">Foto em aproximadamente 45°</label>
+                                <input type="file" name="foto_45" id="foto_45" accept="image/jpeg,image/png,image/webp,image/bmp,image/gif,image/avif,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.bmp,.gif,.avif,.heic,.heif" required>
+                                <div class="helper">Vire levemente o rosto para mostrar mandíbula e perfil.</div>
+                            </div>
+
+                            <div class="field">
+                                <label for="textura">Textura do cabelo</label>
+                                <select name="textura" id="textura">
+                                    <option value="não informado">Não informado</option>
+                                    <option value="liso">Liso</option>
+                                    <option value="ondulado">Ondulado</option>
+                                    <option value="cacheado">Cacheado</option>
+                                    <option value="crespo">Crespo</option>
+                                </select>
+                            </div>
+
+                            <div class="field">
+                                <label for="observacoes">Preferências pessoais</label>
+                                <textarea name="observacoes" id="observacoes" maxlength="1000" placeholder="Ex.: prefiro cabelo médio, quero algo moderno, não quero cortar muito curto..."></textarea>
+                            </div>
+                        </div>
+
+                        <label class="consent">
+                            <input type="checkbox" name="consentimento" value="1" required>
+                            <span>Autorizo o processamento temporário das minhas fotos para gerar a análise e a simulação. Os arquivos expiram automaticamente.</span>
+                        </label>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-lg">Analisar meu rosto</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+        <?php else: ?>
+            <section class="card" id="relatorio">
+                <div class="card-body">
+                    <div class="card-heading">
+                        <span class="step">2</span>
+                        <div>
+                            <h2>Seu relatório personalizado</h2>
+                            <p>As recomendações servem como orientação estética. O resultado pode ser ajustado conforme seu estilo e a avaliação de um profissional.</p>
+                        </div>
+                    </div>
+
+                    <div class="badge-row">
+                        <span class="badge">Formato: <?= h(friendly_face_shape((string)($result['formato_rosto'] ?? 'indeterminado'))) ?></span>
+                        <span class="badge">Possível variação: <?= h(friendly_face_shape((string)($result['formato_secundario'] ?? 'indeterminado'))) ?></span>
+                        <span class="badge">Confiança: <?= h((string)($result['confianca_formato'] ?? '0')) ?>%</span>
+                        <span class="badge">Tom aparente: <?= h(friendly_value((string)($result['tom_pele_aparente'] ?? 'indeterminado'))) ?></span>
+                        <span class="badge">Subtom aparente: <?= h(friendly_value((string)($result['subtom_aparente'] ?? 'indeterminado'))) ?></span>
+                        <span class="badge">Textura: <?= h(friendly_value((string)($result['textura_cabelo_aparente'] ?? 'indeterminado'))) ?></span>
+                    </div>
+
+                    <div class="photo-grid">
+                        <article class="photo-card"><h3>Foto frontal enviada</h3><img src="<?= h($frontal_url) ?>" alt="Foto frontal enviada"></article>
+                        <article class="photo-card"><h3>Foto em 45 graus enviada</h3><img src="<?= h($angle_url) ?>" alt="Foto em 45 graus enviada"></article>
+                    </div>
+
+                    <?php if (!empty($result['precisa_novas_fotos'])): ?>
+                        <div class="alert alert-error" style="margin-top: 18px; margin-bottom: 0;"><strong>Precisamos de novas fotos.</strong><br><?= h((string)($result['orientacao_nova_foto'] ?? '')) ?></div>
+                    <?php else: ?>
+                        <div class="report-grid" style="margin-top: 18px;">
+                            <article class="report-section" style="margin-top:0;"><h3>Leitura do formato do rosto</h3><p><?= h((string)($result['justificativa_formato'] ?? '')) ?></p></article>
+                            <article class="report-section" style="margin-top:0;"><h3>Objetivo visual</h3><p><?= h((string)($result['objetivo_visual'] ?? '')) ?></p></article>
+                        </div>
+
+                        <div class="recommendation-grid" style="margin-top: 16px;">
+                            <article class="report-section" style="margin-top:0;"><h3>Cortes recomendados</h3><ul><?php foreach (($result['cortes_recomendados'] ?? []) as $item): ?><li><?= h((string)$item) ?></li><?php endforeach; ?></ul></article>
+                            <article class="report-section" style="margin-top:0;"><h3>Cortes para evitar ou adaptar</h3><ul><?php foreach (($result['cortes_a_evitar'] ?? []) as $item): ?><li><?= h((string)$item) ?></li><?php endforeach; ?></ul></article>
+                            <article class="report-section" style="margin-top:0;"><h3>Cores recomendadas</h3><ul><?php foreach (($result['cores_cabelo_recomendadas'] ?? []) as $item): ?><li><?= h((string)$item) ?></li><?php endforeach; ?></ul></article>
+                            <article class="report-section" style="margin-top:0;"><h3>Cores para testar com cautela</h3><ul><?php foreach (($result['cores_a_evitar_ou_testar_com_cautela'] ?? []) as $item): ?><li><?= h((string)$item) ?></li><?php endforeach; ?></ul></article>
+                        </div>
+
+                        <div class="report-section"><h3>Observação sobre o subtom aparente</h3><p><?= h((string)($result['observacao_subtom'] ?? '')) ?></p></div>
+                        <div class="report-section"><h3>Resumo da recomendação</h3><p><?= h((string)($result['resumo_final'] ?? '')) ?></p></div>
+
+                        <?php if (!$preview_url): ?>
+                            <div class="preview-callout">
+                                <div class="preview-callout-inner">
+                                    <div><h3>Quer visualizar o corte recomendado?</h3><p>O relatório já está salvo. Gere uma simulação realista usando sua foto frontal como referência.</p></div>
+                                    <form action="api/gerar-preview.php" method="POST" class="js-loading-form" data-loading-title="Gerando sua simulação..." data-loading-text="A prévia visual costuma demorar mais que a análise.">
+                                        <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
+                                        <input type="hidden" name="report_id" value="<?= h((string)$report_id) ?>">
+                                        <button type="submit" class="btn btn-primary btn-lg">Gerar prévia do corte</button>
+                                    </form>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                </div>
+            </section>
+
+            <?php if ($preview_url): ?>
+                <section class="card" id="preview">
+                    <div class="card-body">
+                        <div class="card-heading"><span class="step">3</span><div><h2>Prévia visual do corte recomendado</h2><p>Esta imagem é uma simulação para facilitar sua decisão.</p></div></div>
+                        <div class="preview-stage"><img src="<?= h($preview_url) ?>" alt="Simulação visual do corte recomendado"><div class="preview-caption">Prévia gerada a partir da fotografia frontal enviada.</div></div>
+                        <div class="form-actions"><a class="btn btn-primary" href="<?= h($preview_url) ?>" download>Baixar imagem da prévia</a><a class="btn btn-secondary" href="app.php">Fazer nova análise</a></div>
+                    </div>
+                </section>
+            <?php else: ?>
+                <div class="form-actions"><a class="btn btn-secondary" href="app.php">Fazer nova análise</a></div>
+            <?php endif; ?>
+        <?php endif; ?>
+    </main>
+
+    <script>
+        const overlay = document.getElementById('loadingOverlay');
+        const loadingTitle = document.getElementById('loadingTitle');
+        const loadingText = document.getElementById('loadingText');
+
+        window.addEventListener('pageshow', () => overlay?.classList.remove('active'));
+
+        document.querySelectorAll('.js-loading-form').forEach((form) => {
+            form.addEventListener('submit', () => {
+                loadingTitle.textContent = form.dataset.loadingTitle || 'Processando...';
+                loadingText.textContent = form.dataset.loadingText || 'Isso pode levar alguns instantes.';
+                overlay.classList.add('active');
+            });
+        });
+
+        const currentReportUrl = <?= $report_id ? json_encode('app.php?report_id=' . $report_id, JSON_UNESCAPED_SLASHES) : 'null' ?>;
+        try {
+            if (currentReportUrl) {
+                localStorage.setItem('studio-visagismo:last-report-url', currentReportUrl);
+            } else {
+                const savedUrl = localStorage.getItem('studio-visagismo:last-report-url');
+                const restoreCard = document.getElementById('restoreCard');
+                const restoreLink = document.getElementById('restoreLink');
+                if (savedUrl && restoreCard && restoreLink) {
+                    restoreLink.href = savedUrl;
+                    restoreCard.classList.add('visible');
+                }
+            }
+        } catch (e) {
+            console.warn('localStorage indisponível:', e);
+        }
+
+        const preview = document.getElementById('preview');
+        const relatorio = document.getElementById('relatorio');
+        if (preview) setTimeout(() => preview.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+        else if (relatorio) setTimeout(() => relatorio.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+    </script>
+</body>
+</html>
+<?php finish_request_debug(http_response_code() ?: 200); ?>
