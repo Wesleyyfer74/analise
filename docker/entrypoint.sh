@@ -3,6 +3,9 @@ set -eu
 
 export PORT="${PORT:-8080}"
 
+a2dismod -f mpm_event mpm_worker >/dev/null 2>&1 || true
+a2enmod mpm_prefork >/dev/null 2>&1 || true
+
 if [ -n "${RAILWAY_VOLUME_MOUNT_PATH:-}" ]; then
   mkdir -p "$RAILWAY_VOLUME_MOUNT_PATH/reports" "$RAILWAY_VOLUME_MOUNT_PATH/cache" "$RAILWAY_VOLUME_MOUNT_PATH/logs"
   chown -R www-data:www-data "$RAILWAY_VOLUME_MOUNT_PATH" || true
