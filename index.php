@@ -14,7 +14,7 @@ $user = current_user();
         :root{--bg:#0f172a;--card:#111c33;--text:#f8fafc;--muted:#b6c2d6;--primary:#8b5cf6;--line:rgba(255,255,255,.12)}
         *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top right,rgba(139,92,246,.28),transparent 34rem),var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
         a{color:inherit}.shell{width:min(1120px,calc(100% - 32px));margin:0 auto;padding:28px 0 64px}
-        .nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:56px}.brand{font-weight:900;letter-spacing:-.03em}.nav a{padding:10px 14px;text-decoration:none;border:1px solid var(--line);border-radius:12px}
+        .nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:56px}.brand{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:-.03em}.brand img{width:44px;height:44px;object-fit:contain}.nav a{padding:10px 14px;text-decoration:none;border:1px solid var(--line);border-radius:12px}
         .hero{display:grid;grid-template-columns:1.15fr .85fr;gap:28px;align-items:center}.card{border:1px solid var(--line);border-radius:28px;background:rgba(255,255,255,.06);box-shadow:0 24px 70px rgba(0,0,0,.24)}
         .copy{padding:36px}.eyebrow{color:#c4b5fd;font-size:.8rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em}h1{font-size:clamp(2.4rem,7vw,4.8rem);line-height:.98;letter-spacing:-.07em;margin:14px 0}p{color:var(--muted);line-height:1.7;font-size:1.03rem}
         .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}.btn{display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:14px 18px;border-radius:14px;text-decoration:none;font-weight:850}.btn-primary{background:linear-gradient(135deg,var(--primary),#a78bfa);color:white}.btn-soft{background:rgba(255,255,255,.09);border:1px solid var(--line)}
@@ -26,7 +26,7 @@ $user = current_user();
 <body>
 <main class="shell">
     <nav class="nav">
-        <div class="brand">Studio Visagismo IA</div>
+        <div class="brand"><img src="assets/ai.png" alt="Studio Visagismo IA"><span>Studio Visagismo IA</span></div>
         <div>
             <?php if ($user): ?>
                 <a href="<?= $user['role'] === 'admin' ? 'admin/index.php' : 'cliente/painel.php' ?>">Meu painel</a>

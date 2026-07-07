@@ -28,7 +28,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         .shell{width:min(960px,calc(100% - 28px));display:grid;grid-template-columns:.95fr 1.05fr;align-items:stretch;border:1px solid var(--line);border-radius:34px;overflow:hidden;background:rgba(255,255,255,.72);box-shadow:0 28px 90px rgba(43,30,20,.14);backdrop-filter:blur(12px)}
         .panel{padding:clamp(26px,5vw,46px)}
         .brand{display:flex;align-items:center;gap:12px;font-weight:950;letter-spacing:-.035em}
-        .mark{width:44px;height:44px;border-radius:16px;background:linear-gradient(135deg,var(--brand-dark),var(--brand));box-shadow:0 16px 34px rgba(15,118,110,.22)}
+        .brand img{width:52px;height:52px;object-fit:contain}
         .visual{position:relative;min-height:520px;color:#fff;background:radial-gradient(circle at 72% 20%,rgba(255,255,255,.32),transparent 18rem),linear-gradient(135deg,rgba(11,79,74,.98),rgba(15,118,110,.9))}
         .visual:before{content:"";position:absolute;right:-110px;top:-80px;width:360px;height:360px;border-radius:999px;background:rgba(255,255,255,.18)}
         .visual:after{content:"";position:absolute;left:-120px;bottom:-130px;width:360px;height:360px;border-radius:999px;background:rgba(217,163,95,.3)}
@@ -50,7 +50,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 <body>
 <main class="shell">
     <section class="panel">
-        <div class="brand"><span class="mark"></span><span>Studio Visagismo IA</span></div>
+        <div class="brand"><img src="../assets/ai.png" alt="Studio Visagismo IA"><span>Studio Visagismo IA</span></div>
         <h1>Acesso administrativo</h1>
         <p>Entre para gerenciar clientes, vendas, assinaturas, tokens e o split financeiro da dona do sistema.</p>
         <?php if($error): ?><div class="err"><?= h($error) ?></div><?php endif; ?>
