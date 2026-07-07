@@ -202,7 +202,21 @@ function ensure_default_admin(PDO $pdo) {
 
     $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
     $stmt->execute([$email]);
-    if ($stmt->fetch()) {
+    $existing = $stmt->fetch();
+    if ($existing) {
+        $stmt = $pdo->prepare("SELECT id, password_hash, role, status FROM users WHERE email = ?");
+        $stmt->execute([$email]);
+        $user = $stmt->fetch();
+        if ($user && !password_verify($password, (string)$user['password_hash'])) {
+            $stmt = $pdo->prepare("UPDATE users SET role = ?, password_hash = ?, status = ?, updated_at = ? WHERE id = ?");
+            $stmt->execute([
+                'admin',
+                password_hash($password, PASSWORD_DEFAULT),
+                'active',
+                date('Y-m-d H:i:s'),
+                (int)$user['id'],
+            ]);
+        }
         return;
     }
 
