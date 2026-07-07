@@ -210,8 +210,8 @@ if (!empty($report_id) && is_string($report_id)) {
         <section class="hero">
             <div>
                 <div class="eyebrow"><span class="eyebrow-dot"></span>Studio Visagismo IA</div>
-                <h1>Descubra um visual mais harmônico para o seu rosto.</h1>
-                <p>Envie duas fotos para receber uma análise personalizada do formato do rosto, cortes recomendados e sugestões de coloração. Depois do relatório, gere uma simulação visual do corte indicado.</p>
+                <h1>Analise o rosto do cliente e apresente o corte ideal.</h1>
+                <p>Envie duas fotos do cliente para receber uma análise personalizada do formato do rosto, cortes recomendados e sugestões de coloração. Depois do relatório, gere uma simulação visual do corte indicado.</p>
             </div>
             <div class="hero-mark" aria-hidden="true"><img src="assets/ai.png" alt=""></div>
         </section>
@@ -222,7 +222,7 @@ if (!empty($report_id) && is_string($report_id)) {
 
         <?php if (!$result): ?>
             <div class="restore-card" id="restoreCard">
-                <p><strong>Existe uma análise salva neste aparelho.</strong><br>Você pode reabrir o último relatório sem enviar as fotos novamente.</p>
+                <p><strong>Existe uma análise salva neste aparelho.</strong><br>Você pode reabrir o último relatório sem enviar as fotos do cliente novamente.</p>
                 <a class="btn btn-primary" id="restoreLink" href="#">Abrir último relatório</a>
             </div>
 
@@ -231,12 +231,12 @@ if (!empty($report_id) && is_string($report_id)) {
                     <div class="card-heading">
                         <span class="step">1</span>
                         <div>
-                            <h2>Envie suas fotografias</h2>
+                            <h2>Envie as fotografias do cliente</h2>
                             <p>Use imagens nítidas, sem filtros fortes e com iluminação uniforme. A foto frontal deve mostrar claramente o contorno do rosto.</p>
                         </div>
                     </div>
 
-                    <form action="api/analisar.php" method="POST" enctype="multipart/form-data" class="js-loading-form" data-loading-title="Analisando suas fotos..." data-loading-text="Estamos preparando seu relatório personalizado.">
+                    <form action="api/analisar.php" method="POST" enctype="multipart/form-data" class="js-loading-form" data-loading-title="Analisando as fotos do cliente..." data-loading-text="Estamos preparando o relatório personalizado.">
                         <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
                         <input type="hidden" name="MAX_FILE_SIZE" value="<?= MAX_UPLOAD_SIZE ?>">
 
@@ -272,11 +272,11 @@ if (!empty($report_id) && is_string($report_id)) {
 
                         <label class="consent">
                             <input type="checkbox" name="consentimento" value="1" required>
-                            <span>Autorizo o processamento temporário das minhas fotos para gerar a análise e a simulação. Os arquivos expiram automaticamente.</span>
+                            <span>Confirmo que tenho autorização para usar as fotos do cliente nesta análise. Os arquivos são processados temporariamente e expiram automaticamente.</span>
                         </label>
 
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-primary btn-lg">Analisar meu rosto</button>
+                            <button type="submit" class="btn btn-primary btn-lg">Analisar cliente</button>
                         </div>
                     </form>
                 </div>
@@ -288,7 +288,7 @@ if (!empty($report_id) && is_string($report_id)) {
                         <span class="step">2</span>
                         <div>
                             <h2>Seu relatório personalizado</h2>
-                            <p>As recomendações servem como orientação estética. O resultado pode ser ajustado conforme seu estilo e a avaliação de um profissional.</p>
+                            <p>As recomendações servem como orientação estética. O resultado pode ser ajustado conforme o estilo do cliente e a avaliação de um profissional.</p>
                         </div>
                     </div>
 
@@ -327,8 +327,8 @@ if (!empty($report_id) && is_string($report_id)) {
                         <?php if (!$preview_url): ?>
                             <div class="preview-callout">
                                 <div class="preview-callout-inner">
-                                    <div><h3>Quer visualizar o corte recomendado?</h3><p>O relatório já está salvo. Gere uma simulação realista usando sua foto frontal como referência.</p></div>
-                                    <form action="api/gerar-preview.php" method="POST" class="js-loading-form" data-loading-title="Gerando sua simulação..." data-loading-text="A prévia visual costuma demorar mais que a análise.">
+                                    <div><h3>Quer visualizar o corte recomendado?</h3><p>O relatório já está salvo. Gere uma simulação realista usando a foto frontal do cliente como referência.</p></div>
+                                    <form action="api/gerar-preview.php" method="POST" class="js-loading-form" data-loading-title="Gerando a simulação..." data-loading-text="A prévia visual costuma demorar mais que a análise.">
                                         <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
                                         <input type="hidden" name="report_id" value="<?= h((string)$report_id) ?>">
                                         <button type="submit" class="btn btn-primary btn-lg">Gerar prévia do corte</button>
@@ -343,7 +343,7 @@ if (!empty($report_id) && is_string($report_id)) {
             <?php if ($preview_url): ?>
                 <section class="card" id="preview">
                     <div class="card-body">
-                        <div class="card-heading"><span class="step">3</span><div><h2>Prévia visual do corte recomendado</h2><p>Esta imagem é uma simulação para facilitar sua decisão.</p></div></div>
+                        <div class="card-heading"><span class="step">3</span><div><h2>Prévia visual do corte recomendado</h2><p>Esta imagem é uma simulação para facilitar a decisão do cliente.</p></div></div>
                         <div class="preview-stage"><img src="<?= h($preview_url) ?>" alt="Simulação visual do corte recomendado"><div class="preview-caption">Prévia gerada a partir da fotografia frontal enviada.</div></div>
                         <div class="form-actions"><a class="btn btn-primary" href="<?= h($preview_url) ?>" download>Baixar imagem da prévia</a><a class="btn btn-secondary" href="app.php">Fazer nova análise</a></div>
                     </div>
