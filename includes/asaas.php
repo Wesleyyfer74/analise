@@ -326,6 +326,10 @@ function activate_client_subscription($payment_id, $payment_payload = []) {
     if (!$payment || empty($payment['user_id'])) {
         return false;
     }
+    if (($payment['status'] ?? '') === 'paid' && !empty($payment['paid_at'])) {
+        return true;
+    }
+
     $user_id = (int)$payment['user_id'];
     $days = env_int('SUBSCRIPTION_DAYS', 30, 1, 365);
     $quota = env_int('MONTHLY_TOKEN_QUOTA', 30, 1, 10000);
