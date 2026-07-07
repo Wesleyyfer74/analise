@@ -243,14 +243,14 @@ if (!empty($report_id) && is_string($report_id)) {
                         <div class="form-grid">
                             <div class="field">
                                 <label for="foto_frontal">Foto frontal</label>
-                                <input type="file" name="foto_frontal" id="foto_frontal" accept="image/jpeg,image/png,image/webp,image/bmp,image/gif,image/avif,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.bmp,.gif,.avif,.heic,.heif" capture="user" required>
-                                <div class="helper">Toque para tirar a foto na hora ou escolher uma imagem da galeria. Rosto reto para a câmera.</div>
+                                <input type="file" name="foto_frontal" id="foto_frontal" accept="image/jpeg,image/png,image/webp,image/bmp,image/gif,image/avif,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.bmp,.gif,.avif,.heic,.heif" required>
+                                <div class="helper">Toque para tirar uma foto ou enviar uma imagem da galeria. Rosto reto para a câmera.</div>
                             </div>
 
                             <div class="field">
                                 <label for="foto_45">Foto em aproximadamente 45°</label>
-                                <input type="file" name="foto_45" id="foto_45" accept="image/jpeg,image/png,image/webp,image/bmp,image/gif,image/avif,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.bmp,.gif,.avif,.heic,.heif" capture="user" required>
-                                <div class="helper">Toque para tirar a segunda foto na hora. Vire levemente o rosto para mostrar mandíbula e perfil.</div>
+                                <input type="file" name="foto_45" id="foto_45" accept="image/jpeg,image/png,image/webp,image/bmp,image/gif,image/avif,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.bmp,.gif,.avif,.heic,.heif" required>
+                                <div class="helper">Toque para tirar uma foto ou enviar uma imagem da galeria. Vire levemente o rosto para mostrar mandíbula e perfil.</div>
                             </div>
 
                             <div class="field">
