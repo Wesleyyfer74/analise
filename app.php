@@ -122,7 +122,8 @@ if (!empty($report_id) && is_string($report_id)) {
         h1, h2, h3, p { margin-top: 0; }
         h1 { max-width: 800px; margin-bottom: 12px; font-size: clamp(2.1rem,5vw,3.65rem); line-height: .98; letter-spacing: -.06em; }
         .hero p { max-width: 760px; margin-bottom: 0; color: var(--muted); font-size: 1.03rem; line-height: 1.65; }
-        .hero-mark { display: grid; width: 106px; height: 106px; place-items: center; border-radius: 32px; background: linear-gradient(135deg,var(--primary-dark),var(--primary)); color: white; font-size: 3rem; box-shadow: 0 22px 48px rgba(15,118,110,.22); }
+        .hero-mark { display: grid; width: 106px; height: 106px; place-items: center; border-radius: 32px; background: #fff; box-shadow: 0 22px 48px rgba(15,118,110,.22); }
+        .hero-mark img { width: 74px; height: 74px; object-fit: contain; }
         .card { margin-bottom: 20px; }
         .card-body { padding: 26px; }
         .card-heading { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 20px; }
@@ -212,7 +213,7 @@ if (!empty($report_id) && is_string($report_id)) {
                 <h1>Descubra um visual mais harmônico para o seu rosto.</h1>
                 <p>Envie duas fotos para receber uma análise personalizada do formato do rosto, cortes recomendados e sugestões de coloração. Depois do relatório, gere uma simulação visual do corte indicado.</p>
             </div>
-            <div class="hero-mark" aria-hidden="true">✦</div>
+            <div class="hero-mark" aria-hidden="true"><img src="assets/ai.png" alt=""></div>
         </section>
 
         <?php if ($error): ?>
