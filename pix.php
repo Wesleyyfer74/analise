@@ -199,12 +199,6 @@ $amount = number_format((float)$payment['amount'], 2, ',', '.');
             font-size: .93rem;
         }
 
-        .login {
-            display: inline-block;
-            margin-top: 22px;
-            color: var(--brand-dark);
-            font-weight: 900;
-        }
     </style>
 </head>
 <body>
@@ -243,8 +237,7 @@ $amount = number_format((float)$payment['amount'], 2, ',', '.');
             </div>
         <?php endif; ?>
 
-        <p class="hint">Assim que o pagamento for confirmado, seu acesso será liberado automaticamente.</p>
-        <a class="login" href="cliente/login.php">Já paguei, acessar login</a>
+        <p class="hint">Assim que o pagamento for confirmado pelo Pix, seu acesso será liberado automaticamente.</p>
     </section>
 </main>
 
