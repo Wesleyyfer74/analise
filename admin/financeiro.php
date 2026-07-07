@@ -33,13 +33,24 @@ $payments = db_fetch_all('SELECT p.*, u.name FROM payments p LEFT JOIN users u O
 <body>
 <main class="wrap">
     <?php include __DIR__ . '/nav.php'; ?>
-    <h1>Financeiro</h1>
+    <section class="hero-admin">
+        <div>
+            <span class="eyebrow">Financeiro</span>
+            <h1>Vendas, split e saldos</h1>
+            <p>Veja o que foi recebido, o que ficou para a dona, a comissao da plataforma e o saldo da conta principal Asaas.</p>
+        </div>
+        <div class="hero-metric">
+            <span>Total pago</span>
+            <strong><?= br_money_admin($totals['paid_total'] ?? 0) ?></strong>
+            <span><?= h($totals['paid_count'] ?? 0) ?> pagamento(s)</span>
+        </div>
+    </section>
     <section class="grid">
-        <div class="card"><p>Recebido no sistema</p><h2><?= br_money_admin($totals['paid_total'] ?? 0) ?></h2><p><?= h($totals['paid_count'] ?? 0) ?> pagamentos</p></div>
-        <div class="card"><p>Saldo dona</p><h2><?= br_money_admin($owner['paid_total'] ?? 0) ?></h2><p>Parte enviada por split</p></div>
-        <div class="card"><p>Plataforma</p><h2><?= br_money_admin($platform['paid_total'] ?? 0) ?></h2><p>Parte da conta principal</p></div>
-        <div class="card"><p>Pendente</p><h2><?= br_money_admin($pending['pending_total'] ?? 0) ?></h2><p><?= h($pending['pending_count'] ?? 0) ?> cobrancas</p></div>
-        <div class="card"><p>Saldo Asaas principal</p><?php if($balance): ?><h2><?= br_money_admin($balance['balance'] ?? 0) ?></h2><?php elseif($balance_error): ?><p><?= h($balance_error) ?></p><?php else: ?><p>Configure ASAAS_API_KEY.</p><?php endif; ?></div>
+        <div class="card stat-card"><span class="stat-icon">R$</span><p class="stat-label">Recebido</p><div class="stat-value"><?= br_money_admin($totals['paid_total'] ?? 0) ?></div><p class="stat-help"><?= h($totals['paid_count'] ?? 0) ?> pagamentos</p></div>
+        <div class="card stat-card"><span class="stat-icon">70</span><p class="stat-label">Saldo dona</p><div class="stat-value"><?= br_money_admin($owner['paid_total'] ?? 0) ?></div><p class="stat-help">parte enviada por split</p></div>
+        <div class="card stat-card"><span class="stat-icon">30</span><p class="stat-label">Plataforma</p><div class="stat-value"><?= br_money_admin($platform['paid_total'] ?? 0) ?></div><p class="stat-help">conta principal</p></div>
+        <div class="card stat-card"><span class="stat-icon">PX</span><p class="stat-label">Pendente</p><div class="stat-value"><?= br_money_admin($pending['pending_total'] ?? 0) ?></div><p class="stat-help"><?= h($pending['pending_count'] ?? 0) ?> cobrancas</p></div>
+        <div class="card stat-card"><span class="stat-icon">AS</span><p class="stat-label">Asaas principal</p><?php if($balance): ?><div class="stat-value"><?= br_money_admin($balance['balance'] ?? 0) ?></div><?php elseif($balance_error): ?><p><?= h($balance_error) ?></p><?php else: ?><p>Configure ASAAS_API_KEY.</p><?php endif; ?></div>
     </section>
 
     <section class="card">
@@ -51,13 +62,14 @@ $payments = db_fetch_all('SELECT p.*, u.name FROM payments p LEFT JOIN users u O
 
     <section class="card">
         <h2>Movimentacoes</h2>
-        <table>
+        <div class="table-wrap"><table>
             <thead><tr><th>Cliente</th><th>Status</th><th>Valor</th><th>Dona</th><th>Plataforma</th><th>Pago em</th></tr></thead>
             <tbody>
             <?php foreach($payments as $p): ?>
+                <?php $status = strtolower((string)$p['status']); ?>
                 <tr>
                     <td><?= h($p['name'] ?? '-') ?></td>
-                    <td><?= h($p['status']) ?></td>
+                    <td><span class="status-pill <?= h($status) ?>"><?= h($p['status']) ?></span></td>
                     <td><?= br_money_admin($p['amount']) ?></td>
                     <td><?= br_money_admin($p['owner_share_value'] ?? 0) ?></td>
                     <td><?= br_money_admin($p['platform_share_value'] ?? 0) ?></td>
@@ -65,7 +77,7 @@ $payments = db_fetch_all('SELECT p.*, u.name FROM payments p LEFT JOIN users u O
                 </tr>
             <?php endforeach; ?>
             </tbody>
-        </table>
+        </table></div>
     </section>
 </main>
 </body>
