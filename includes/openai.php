@@ -136,30 +136,74 @@ class OpenAIClient {
         return $this->normalize_analysis($analysis);
     }
 
-    public function generate_haircut_preview($frontal_path, $analysis, $output_path) {
-        $main_cut = $analysis['cortes_recomendados'][0] ?? 'corte harmonioso e equilibrado';
+    public function generate_haircut_preview($frontal_path, $analysis, $output_path, $selected_haircut = '', $additional_prompt = '', $variation_number = 1) {
+        $main_cut = trim((string)$selected_haircut);
+        if ($main_cut === '') {
+            $main_cut = $analysis['cortes_recomendados'][0] ?? 'corte harmonioso e equilibrado';
+        }
         $preferences = $analysis['preferencias_cliente'] ?? 'nao informadas';
+        $additional_prompt = mb_substr(trim((string)$additional_prompt), 0, 1200);
 
         $prompt = "Edite esta fotografia da pessoa real, mantendo alta fidelidade ao rosto.\n\n"
-            . "Altere somente o cabelo para simular o corte recomendado.\n"
+            . "OBJETIVO\n"
+            . "Crie uma simulacao fotografica realista da mesma pessoa com este corte: {$main_cut}.\n\n"
+            . "REGRAS OBRIGATORIAS\n"
             . "Preserve rigorosamente identidade, formato e tracos faciais, expressao, pose, "
             . "tom de pele, barba, roupa, fundo, iluminacao e enquadramento.\n"
             . "Nao embeleze nem modifique idade, corpo, olhos, nariz, boca ou mandibula.\n"
+            . "Altere principalmente o cabelo.\n"
             . "O resultado deve parecer uma fotografia real de consultoria em salao, sem texto "
             . "e sem marca d'agua.\n\n"
+            . "ANALISE\n"
             . "Formato de rosto analisado: " . friendly_face_shape($analysis['formato_rosto']) . ".\n"
             . "Textura do cabelo: " . friendly_value($analysis['textura_cabelo_aparente']) . ".\n"
             . "Preferencias do cliente: {$preferences}.\n"
-            . "Corte a aplicar: {$main_cut}.\n"
-            . "Aplique esse corte de forma natural e tecnicamente plausivel.";
+            . "Cortes recomendados: " . implode('; ', array_slice($analysis['cortes_recomendados'] ?? [], 0, 5)) . ".\n\n"
+            . "VARIACAO\n"
+            . "Esta e a geracao numero {$variation_number}. Crie uma interpretacao nova do corte, sem modificar a identidade.\n\n"
+            . "OBSERVACAO DO PROFISSIONAL\n"
+            . ($additional_prompt !== '' ? $additional_prompt : 'Nenhuma observacao adicional.');
 
-        $quality = in_array(IMAGE_QUALITY, ['low', 'medium', 'high', 'auto'], true)
-            ? IMAGE_QUALITY
+        $quality = in_array(PREVIEW_IMAGE_QUALITY, ['low', 'medium', 'high', 'auto'], true)
+            ? PREVIEW_IMAGE_QUALITY
             : 'medium';
 
+        $this->edit_image($frontal_path, $prompt, $output_path, $quality);
+        return $prompt;
+    }
+
+    public function refine_final_image($selected_image_path, $user_request, $output_path) {
+        $user_request = mb_substr(trim((string)$user_request), 0, 4000);
+        if ($user_request === '') {
+            throw new Exception('Descreva o que deseja refinar na imagem final.');
+        }
+
+        $prompt = "Edite a fotografia enviada como a versao final escolhida pelo profissional.\n\n"
+            . "REFINAMENTO FINAL SOLICITADO\n"
+            . $user_request . "\n\n"
+            . "REGRAS OBRIGATORIAS\n"
+            . "- Preserve com maxima fidelidade a identidade da pessoa.\n"
+            . "- Preserve rosto, olhos, sobrancelhas, nariz, boca, orelhas e tom de pele.\n"
+            . "- Preserve o corte de cabelo principal ja aprovado.\n"
+            . "- Altere somente os detalhes necessarios para cumprir o refinamento solicitado.\n"
+            . "- Preserve pose, expressao, enquadramento, roupa, fundo e iluminacao.\n"
+            . "- Nao transforme a pessoa em outra.\n"
+            . "- Nao aplique filtros artificiais ou efeito de desenho.\n"
+            . "- Nao adicione texto, moldura, logotipo ou marca d'agua.\n"
+            . "- Entregue uma fotografia realista, natural e pronta como resultado final.";
+
+        $quality = in_array(FINAL_IMAGE_QUALITY, ['low', 'medium', 'high', 'auto'], true)
+            ? FINAL_IMAGE_QUALITY
+            : 'high';
+
+        $this->edit_image($selected_image_path, $prompt, $output_path, $quality);
+        return $prompt;
+    }
+
+    private function edit_image($source_path, $prompt, $output_path, $quality) {
         $response = $this->multipart_request('/images/edits', [
             'model' => IMAGE_MODEL,
-            'image[]' => new CURLFile($frontal_path, 'image/jpeg', 'frontal.jpg'),
+            'image[]' => new CURLFile($source_path, 'image/jpeg', 'source.jpg'),
             'prompt' => $prompt,
             'n' => '1',
             'size' => 'auto',

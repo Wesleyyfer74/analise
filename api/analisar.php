@@ -86,6 +86,15 @@ try {
         'frontal_url' => relative_static_url($report_id, basename($frontal_path)),
         'angle_url' => relative_static_url($report_id, basename($angle_path)),
         'preview_url' => null,
+        'current_image_url' => null,
+        'selected_image_url' => null,
+        'approved_image_url' => null,
+        'final_image_url' => null,
+        'generations' => [],
+        'workflow_status' => 'analysis_ready',
+        'final_refinement' => null,
+        'final_refinement_prompt' => '',
+        'completed_at' => null,
     ];
 
     save_report($report_id, $report);

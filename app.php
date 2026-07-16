@@ -20,6 +20,11 @@ $result = null;
 $frontal_url = null;
 $angle_url = null;
 $preview_url = null;
+$current_image_url = null;
+$selected_image_url = null;
+$final_image_url = null;
+$generations = [];
+$workflow_status = 'analysis_ready';
 
 if (!empty($report_id) && is_string($report_id)) {
     try {
@@ -29,6 +34,11 @@ if (!empty($report_id) && is_string($report_id)) {
         $frontal_url = $report['frontal_url'] ?? null;
         $angle_url = $report['angle_url'] ?? null;
         $preview_url = $report['preview_url'] ?? null;
+        $current_image_url = $report['current_image_url'] ?? $preview_url;
+        $selected_image_url = $report['selected_image_url'] ?? null;
+        $final_image_url = $report['final_image_url'] ?? null;
+        $generations = is_array($report['generations'] ?? null) ? $report['generations'] : [];
+        $workflow_status = $report['workflow_status'] ?? 'analysis_ready';
     } catch (Throwable $e) {
         debug_log('ERRO CARREGANDO RELATORIO NO INDEX', ['error' => $e->getMessage()], 'ERROR');
         $error = $e->getMessage();
@@ -178,6 +188,16 @@ if (!empty($report_id) && is_string($report_id)) {
         .preview-stage { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-lg); background: #171412; box-shadow: var(--shadow); margin-top: 18px; }
         .preview-stage img { display: block; width: 100%; max-height: 1000px; object-fit: contain; background: #171412; }
         .preview-caption { padding: 15px 18px; background: white; color: var(--muted); font-size: .92rem; line-height: 1.55; }
+        .preview-form { display: grid; gap: 14px; margin-top: 16px; }
+        .preview-form-grid { display: grid; gap: 14px; grid-template-columns: minmax(0,.85fr) minmax(0,1.15fr); }
+        .choice-panel { margin-top: 18px; border: 1px solid rgba(15,118,110,.18); border-radius: var(--radius-md); padding: 18px; background: rgba(217,241,237,.52); }
+        .choice-panel h3 { margin-bottom: 7px; font-size: 1.05rem; }
+        .choice-panel p { margin-bottom: 0; color: var(--muted); line-height: 1.55; }
+        .generation-list { display: grid; gap: 10px; margin-top: 16px; }
+        .generation-item { display: flex; justify-content: space-between; gap: 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px 14px; background: var(--surface-soft); color: var(--muted); font-size: .88rem; }
+        .generation-item strong { color: var(--text); }
+        .stack-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+        .stack-actions form { margin: 0; }
         .loading-overlay { position: fixed; z-index: 999; inset: 0; display: none; place-items: center; padding: 20px; background: rgba(23,20,18,.62); backdrop-filter: blur(8px); }
         .loading-overlay.active { display: grid; }
         .loading-card { width: min(390px,100%); padding: 26px; border-radius: 24px; background: white; text-align: center; box-shadow: var(--shadow); }
@@ -191,6 +211,9 @@ if (!empty($report_id) && is_string($report_id)) {
             .card-body { padding: 18px; }
             .form-grid, .photo-grid, .report-grid, .recommendation-grid { grid-template-columns: 1fr; }
             .preview-callout-inner { grid-template-columns: 1fr; padding: 18px; }
+            .preview-form-grid { grid-template-columns: 1fr; }
+            .generation-item { display: block; }
+            .stack-actions, .stack-actions form { width: 100%; }
             .btn, .form-actions .btn { width: 100%; }
             .photo-card img { max-height: 300px; }
             .preview-stage img { max-height: none; }
@@ -327,11 +350,27 @@ if (!empty($report_id) && is_string($report_id)) {
                         <?php if (!$preview_url): ?>
                             <div class="preview-callout">
                                 <div class="preview-callout-inner">
-                                    <div><h3>Quer visualizar o corte recomendado?</h3><p>O relatório já está salvo. Gere uma simulação realista usando a foto frontal do cliente como referência.</p></div>
+                                    <div><h3>Quer visualizar o corte recomendado?</h3><p>O relatório já está salvo. Gere uma primeira versão realista usando a foto frontal do cliente como referência.</p></div>
                                     <form action="api/gerar-preview.php" method="POST" class="js-loading-form" data-loading-title="Gerando a simulação..." data-loading-text="A prévia visual costuma demorar mais que a análise.">
                                         <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
                                         <input type="hidden" name="report_id" value="<?= h((string)$report_id) ?>">
-                                        <button type="submit" class="btn btn-primary btn-lg">Gerar prévia do corte</button>
+                                        <div class="preview-form">
+                                            <div class="preview-form-grid">
+                                                <div class="field">
+                                                    <label for="corte_escolhido">Corte base</label>
+                                                    <select name="corte_escolhido" id="corte_escolhido">
+                                                        <?php foreach (($result['cortes_recomendados'] ?? []) as $item): ?>
+                                                            <option value="<?= h((string)$item) ?>"><?= h((string)$item) ?></option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                </div>
+                                                <div class="field">
+                                                    <label for="prompt_preview">Observação para a imagem</label>
+                                                    <textarea name="prompt_preview" id="prompt_preview" maxlength="1200" placeholder="Ex.: deixar mais social, manter franja discreta, simular laterais mais baixas..."></textarea>
+                                                </div>
+                                            </div>
+                                            <button type="submit" class="btn btn-primary btn-lg">Gerar primeira versão</button>
+                                        </div>
                                     </form>
                                 </div>
                             </div>
@@ -340,12 +379,83 @@ if (!empty($report_id) && is_string($report_id)) {
                 </div>
             </section>
 
-            <?php if ($preview_url): ?>
+            <?php if ($current_image_url): ?>
                 <section class="card" id="preview">
                     <div class="card-body">
-                        <div class="card-heading"><span class="step">3</span><div><h2>Prévia visual do corte recomendado</h2><p>Esta imagem é uma simulação para facilitar a decisão do cliente.</p></div></div>
-                        <div class="preview-stage"><img src="<?= h($preview_url) ?>" alt="Simulação visual do corte recomendado"><div class="preview-caption">Prévia gerada a partir da fotografia frontal enviada.</div></div>
-                        <div class="form-actions"><a class="btn btn-primary" href="<?= h($preview_url) ?>" download>Baixar imagem da prévia</a><a class="btn btn-secondary" href="app.php">Fazer nova análise</a></div>
+                        <div class="card-heading"><span class="step">3</span><div><h2><?= $workflow_status === 'completed' ? 'Resultado final do cliente' : 'Prévia visual do corte recomendado' ?></h2><p><?= $workflow_status === 'completed' ? 'Imagem final escolhida para apresentar no atendimento.' : 'Compare as versões, gere outra opção se precisar e aprove a imagem que mais combina com o cliente.' ?></p></div></div>
+                        <div class="preview-stage"><img src="<?= h($current_image_url) ?>" alt="Simulação visual do corte recomendado"><div class="preview-caption"><?= $workflow_status === 'completed' ? 'Resultado final salvo neste relatório.' : 'Versão atual gerada a partir da fotografia frontal enviada.' ?></div></div>
+
+                        <?php if (!empty($generations)): ?>
+                            <div class="generation-list" aria-label="Versões geradas">
+                                <?php foreach (array_reverse($generations) as $generation): ?>
+                                    <div class="generation-item">
+                                        <span><strong>Versão <?= h((string)($generation['number'] ?? '')) ?></strong> <?= !empty($generation['selected_haircut']) ? ' · ' . h((string)$generation['selected_haircut']) : '' ?></span>
+                                        <span><?= h(date('d/m/Y H:i', strtotime((string)($generation['created_at'] ?? 'now')))) ?></span>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if ($workflow_status === 'preview_ready'): ?>
+                            <div class="choice-panel">
+                                <h3>Aprovar ou gerar outra opção</h3>
+                                <p>Se esta versão ficou boa, aprove para seguir ao acabamento final. Se quiser testar outra leitura do corte, gere uma nova versão com uma orientação diferente.</p>
+                                <div class="stack-actions">
+                                    <form action="api/aprovar-preview.php" method="POST">
+                                        <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
+                                        <input type="hidden" name="report_id" value="<?= h((string)$report_id) ?>">
+                                        <button type="submit" class="btn btn-primary">Gostei desta imagem</button>
+                                    </form>
+                                </div>
+                                <form action="api/gerar-preview.php" method="POST" class="preview-form js-loading-form" data-loading-title="Gerando outra versão..." data-loading-text="A nova prévia vai manter o cliente como referência e variar o corte.">
+                                    <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
+                                    <input type="hidden" name="report_id" value="<?= h((string)$report_id) ?>">
+                                    <div class="preview-form-grid">
+                                        <div class="field">
+                                            <label for="novo_corte_escolhido">Corte base</label>
+                                            <select name="corte_escolhido" id="novo_corte_escolhido">
+                                                <?php foreach (($result['cortes_recomendados'] ?? []) as $item): ?>
+                                                    <option value="<?= h((string)$item) ?>"><?= h((string)$item) ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="field">
+                                            <label for="novo_prompt_preview">Orientação para a nova versão</label>
+                                            <textarea name="prompt_preview" id="novo_prompt_preview" maxlength="1200" placeholder="Ex.: testar algo mais discreto, deixar mais moderno, manter volume no topo..."></textarea>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-secondary">Gerar outra versão</button>
+                                </form>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if ($workflow_status === 'awaiting_final_refinement'): ?>
+                            <div class="choice-panel" id="refinamento-final">
+                                <h3>Imagem escolhida</h3>
+                                <p>Finalize como está ou peça um último ajuste para preparar a imagem de apresentação.</p>
+                                <form action="api/refinar-final.php" method="POST" class="preview-form js-loading-form" data-loading-title="Refinando imagem final..." data-loading-text="Estamos aplicando o ajuste solicitado na versão aprovada.">
+                                    <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
+                                    <input type="hidden" name="report_id" value="<?= h((string)$report_id) ?>">
+                                    <div class="field">
+                                        <label for="prompt_refinamento">Ajuste final</label>
+                                        <textarea name="prompt_refinamento" id="prompt_refinamento" maxlength="4000" placeholder="Ex.: suavizar o volume da franja, deixar as laterais um pouco mais baixas, manter o acabamento natural..."></textarea>
+                                    </div>
+                                    <div class="stack-actions">
+                                        <button type="submit" class="btn btn-primary">Refinar imagem final</button>
+                                    </div>
+                                </form>
+                                <form action="api/finalizar-sem-refino.php" method="POST" class="stack-actions">
+                                    <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
+                                    <input type="hidden" name="report_id" value="<?= h((string)$report_id) ?>">
+                                    <button type="submit" class="btn btn-secondary">Finalizar sem refino</button>
+                                </form>
+                            </div>
+                        <?php endif; ?>
+
+                        <div class="form-actions" id="<?= $workflow_status === 'completed' ? 'resultado-final' : '' ?>">
+                            <a class="btn btn-primary" href="<?= h($current_image_url) ?>" download><?= $workflow_status === 'completed' ? 'Baixar imagem final' : 'Baixar imagem atual' ?></a>
+                            <a class="btn btn-secondary" href="app.php">Fazer nova análise</a>
+                        </div>
                     </div>
                 </section>
             <?php else: ?>

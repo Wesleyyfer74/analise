@@ -84,6 +84,8 @@ define('MAX_UPLOAD_SIZE', env_int('MAX_UPLOAD_SIZE', 30 * 1024 * 1024, 1024 * 10
 define('REPORT_TTL', env_int('REPORT_TTL', 86400, 3600, 604800));
 define('SESSION_TIMEOUT', env_int('SESSION_TIMEOUT', 3600, 900, 86400));
 define('IMAGE_QUALITY', env_value('IMAGE_QUALITY', 'medium'));
+define('PREVIEW_IMAGE_QUALITY', env_value('PREVIEW_IMAGE_QUALITY', env_value('IMAGE_QUALITY', 'medium')));
+define('FINAL_IMAGE_QUALITY', env_value('FINAL_IMAGE_QUALITY', 'high'));
 define('ALLOWED_EXTENSIONS', ['jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif', 'avif', 'heic', 'heif']);
 
 foreach ([DATA_DIR, CACHE_DIR, LOG_DIR] as $dir) {
@@ -263,6 +265,7 @@ function write_json_atomic($path, $content) {
 }
 
 function save_report($report_id, $report) {
+    $report = normalize_report_schema($report_id, $report);
     write_json_atomic(report_json_path($report_id), $report);
 }
 
@@ -281,7 +284,54 @@ function load_report($report_id) {
         remove_directory(report_data_folder($report_id));
         throw new Exception('Este relatorio expirou. Faca uma nova analise.');
     }
+    return normalize_report_schema($report_id, $report);
+}
+
+function normalize_report_schema($report_id, $report) {
+    if (!is_array($report)) {
+        $report = [];
+    }
+    $report['report_id'] = validate_report_id($report_id);
+    $report['generations'] = is_array($report['generations'] ?? null) ? array_values($report['generations']) : [];
+
+    $current = $report['current_image_url'] ?? ($report['preview_url'] ?? null);
+    $selected = $report['selected_image_url'] ?? ($report['approved_image_url'] ?? null);
+
+    $report['current_image_url'] = $current ?: null;
+    $report['preview_url'] = $current ?: null;
+    $report['selected_image_url'] = $selected ?: null;
+    $report['approved_image_url'] = $selected ?: null;
+    $report['final_image_url'] = $report['final_image_url'] ?? null;
+    $report['final_refinement'] = $report['final_refinement'] ?? null;
+    $report['final_refinement_prompt'] = (string)($report['final_refinement_prompt'] ?? '');
+    $report['completed_at'] = $report['completed_at'] ?? null;
+
+    if (empty($report['workflow_status'])) {
+        if (!empty($report['final_image_url'])) {
+            $report['workflow_status'] = 'completed';
+        } elseif (!empty($report['selected_image_url'])) {
+            $report['workflow_status'] = 'awaiting_final_refinement';
+        } elseif (!empty($report['current_image_url'])) {
+            $report['workflow_status'] = 'preview_ready';
+        } else {
+            $report['workflow_status'] = 'analysis_ready';
+        }
+    }
+
     return $report;
+}
+
+function next_generation_filename($report) {
+    $count = is_array($report['generations'] ?? null) ? count($report['generations']) : 0;
+    $number = $count + 1;
+    return [
+        $number,
+        sprintf('generation_%03d_%s.jpg', $number, bin2hex(random_bytes(4))),
+    ];
+}
+
+function final_refinement_filename() {
+    return 'final_refinement_' . bin2hex(random_bytes(4)) . '.jpg';
 }
 
 function authorize_report($report_id) {
@@ -302,6 +352,23 @@ function register_report_for_session($report_id) {
 function relative_static_url($report_id, $filename) {
     return 'api/imagem.php?report_id=' . rawurlencode($report_id)
         . '&file=' . rawurlencode(basename($filename));
+}
+
+function image_url_to_path($report_id, $url) {
+    validate_report_id($report_id);
+    $query = parse_url((string)$url, PHP_URL_QUERY);
+    parse_str((string)$query, $params);
+
+    if (($params['report_id'] ?? '') !== $report_id || empty($params['file'])) {
+        throw new Exception('A imagem escolhida nao pertence a este relatorio.');
+    }
+
+    $filename = basename((string)$params['file']);
+    $path = report_static_folder($report_id) . '/' . $filename;
+    if (!is_file($path)) {
+        throw new Exception('A imagem escolhida nao foi encontrada.');
+    }
+    return $path;
 }
 
 function find_image_path($folder, $stem) {

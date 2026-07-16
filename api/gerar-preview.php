@@ -35,9 +35,12 @@ try {
     }
 
     $report = load_report($report_id);
-    if (!empty($report['preview_url'])) {
-        header('Location: ../app.php?report_id=' . rawurlencode($report_id) . '#preview', true, 303);
-        exit;
+    $status = $report['workflow_status'] ?? 'analysis_ready';
+    if ($status === 'awaiting_final_refinement') {
+        throw new Exception('A versao final ja foi escolhida. Refine ou finalize a imagem selecionada.');
+    }
+    if ($status === 'completed') {
+        throw new Exception('Este visagismo ja foi concluido. Faca uma nova analise para gerar outra imagem.');
     }
 
     $analysis = $report['analysis'] ?? [];
@@ -45,18 +48,50 @@ try {
         throw new Exception('Envie novas fotografias antes de gerar uma previa.');
     }
 
+    $selected_haircut = mb_substr(trim((string)($_POST['corte_escolhido'] ?? '')), 0, 220);
+    $additional_prompt = mb_substr(trim((string)($_POST['prompt_preview'] ?? '')), 0, 1200);
+
     $image_folder = report_static_folder($report_id);
     $frontal_path = find_image_path($image_folder, 'frontal');
-    $preview_path = $image_folder . '/preview.jpg';
+    [$generation_number, $filename] = next_generation_filename($report);
+    $preview_path = $image_folder . '/' . $filename;
 
     $client = new OpenAIClient();
     debug_log('preview.openai_start', [
         'model' => IMAGE_MODEL,
         'report_id' => $report_id,
+        'generation' => $generation_number,
     ], 'INFO');
-    $client->generate_haircut_preview($frontal_path, $analysis, $preview_path);
+    $prompt_used = $client->generate_haircut_preview(
+        $frontal_path,
+        $analysis,
+        $preview_path,
+        $selected_haircut,
+        $additional_prompt,
+        $generation_number
+    );
 
-    $report['preview_url'] = relative_static_url($report_id, 'preview.jpg');
+    $preview_url = relative_static_url($report_id, $filename);
+    $report['generations'][] = [
+        'id' => bin2hex(random_bytes(8)),
+        'number' => $generation_number,
+        'created_at' => date('c'),
+        'url' => $preview_url,
+        'filename' => $filename,
+        'selected_haircut' => $selected_haircut ?: ($analysis['cortes_recomendados'][0] ?? ''),
+        'additional_prompt' => $additional_prompt,
+        'model' => IMAGE_MODEL,
+        'prompt_used' => $prompt_used,
+    ];
+    $report['preview_url'] = $preview_url;
+    $report['current_image_url'] = $preview_url;
+    $report['selected_image_url'] = null;
+    $report['approved_image_url'] = null;
+    $report['final_image_url'] = null;
+    $report['final_refinement'] = null;
+    $report['final_refinement_prompt'] = '';
+    $report['completed_at'] = null;
+    $report['workflow_status'] = 'preview_ready';
     $report['preview_created_at'] = date('c');
     save_report($report_id, $report);
 
