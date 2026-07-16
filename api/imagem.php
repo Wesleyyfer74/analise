@@ -11,10 +11,13 @@ start_secure_session();
 try {
     $report_id = $_GET['report_id'] ?? null;
     $filename = basename((string)($_GET['file'] ?? ''));
-    $allowed = ['frontal.jpg', 'angulo.jpg', 'preview.jpg'];
 
     authorize_report($report_id);
-    if (!in_array($filename, $allowed, true)) {
+    $is_allowed = in_array($filename, ['frontal.jpg', 'angulo.jpg', 'preview.jpg'], true)
+        || preg_match('/^generation_[0-9]{3}_[a-f0-9]{8}\.jpg$/', $filename)
+        || preg_match('/^final_refinement_[a-f0-9]{8}\.jpg$/', $filename);
+
+    if (!$is_allowed) {
         throw new Exception('Imagem invalida.');
     }
 
